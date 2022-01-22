@@ -1,0 +1,8 @@
+.tile {
+  height: 50px;
+  width: 50px;
+  cursor: pointer;
+}
+.row {
+  display: flex;
+}

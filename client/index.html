@@ -1,0 +1,33 @@
+<html>
+  <title>tic tac toe</title>
+  <head>
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <div id="app">
+      <template v-if="!loggedIn">
+        <h1>Enter your email here to join the game!!</h1>
+        <input v-model="userInput" placeholder="Enter your email"/>
+        <button v-on:click="joinGame">Join</button>
+      </template>
+      <template v-if="loggedIn">
+        <h1>{{displayLabel}}</h1>
+        <h4 v-if="!gameIdentifier">Please wait while we find you an opponent!!</h4>
+      </template>
+      <template v-if="loggedIn">
+        <h2 v-if="opponentId">Your playing with {{opponentId}}</h2>
+        <h4 v-if="gameIdentifier">Game Identifier-->{{gameIdentifier}}</h4>
+        <h4 v-if="isMyTurn">Your turn!! click on empty tile to play</h4>
+        <div v-if="gameIdentifier">
+          <div class="row" v-for="(row, i) in board">
+            <button class="tile" v-for="(item, j) in row" v-on:click="tileClicked(i,j)">{{item ? item : ''}}</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js" integrity="sha512-MgkNs0gNdrnOM7k+0L+wgiRc5aLgl74sJQKbIWegVIMvVGPc1+gc1L2oK9Wf/D9pq58eqIJAxOonYPVE5UwUFA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="socket-client.js"></script>
+  <script src="app.js"></script>
+</html>
