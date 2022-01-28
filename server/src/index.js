@@ -1,5 +1,6 @@
 const app = require('express')();
 var cors = require('cors');
+const { RateLimiterClusterMaster, RateLimiterCluster } = require('rate-limiter-flexible');
 app.use(cors);
 const { v1: uuidv1 } = require('uuid');
 const redis = require('redis');
@@ -8,28 +9,11 @@ const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 const cluster = require('cluster');
 const numCPUs = require("os").cpus().length;
 
-if (cluster.isMaster) {
-  const server = require('http').createServer(app);
-  
-  setupMaster(server, {
-    loadBalancingMethod: "least-connection",
-  });
-  setupPrimary();
 
-  server.listen(3000);
-
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-
-  cluster.on("exit", (worker) => {
-    console.log(`Worker ${worker.process.pid} died`);
-    cluster.fork();
-  });
-} else {
+const initGame = () => {
   const client = redis.createClient();
-  const pubClient = redis.createClient();
-  const subClient = pubClient.duplicate();
+  // const pubClient = redis.createClient();
+  // const subClient = pubClient.duplicate();
   client.connect();
 
   client.on('ready', (data) => {
@@ -49,14 +33,25 @@ if (cluster.isMaster) {
 
   const mapPrefix = 'at-tic-tac-toe:';
 
+  const rateLimiter = new RateLimiterCluster({
+    keyPrefix: 'myclusterlimiter'+uuidv1(), // Must be unique for each limiter
+    points: 1,
+    duration: 15*60,
+  });
+
   io.sockets.on('connection', (socket) => {
     socket.on('clientDetails', async (data) => {
-      console.log('user details', data);
-      console.log(`Worker ${process.pid} serving`);
-      const isUserAlreadyExists = await isRecordExistsOnRedisHMap(data.email);
-      if (!isUserAlreadyExists) {
-        insertOnRedisHMap(data.email, { socketId: socket.id, gameId: null });
-        await enqueue('queue', data.email);
+      try {
+        await rateLimiter.consume(socket.handshake.address, 1);
+        console.log('user details', data);
+        console.log(`Worker ${process.pid} serving`);
+        const isUserAlreadyExists = await isRecordExistsOnRedisHMap(data.email);
+        if (!isUserAlreadyExists) {
+          insertOnRedisHMap(data.email, { socketId: socket.id, gameId: null });
+          await enqueue('queue', data.email);
+        }
+      } catch (error) {
+        socket.emit('blocked', { 'retry-ms': error.msBeforeNext });
       }
     });
     socket.on('user_move', (data) => {
@@ -177,4 +172,27 @@ if (cluster.isMaster) {
   }
 
   /*redis code ends*/
+}
+
+if (cluster.isMaster) {
+  const server = require('http').createServer(app);
+  new RateLimiterClusterMaster();
+
+  setupMaster(server, {
+    loadBalancingMethod: "least-connection",
+  });
+  setupPrimary();
+
+  server.listen(3000);
+
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on("exit", (worker) => {
+    console.log(`Worker ${worker.process.pid} died`);
+    cluster.fork();
+  });
+} else {
+  initGame();
 }

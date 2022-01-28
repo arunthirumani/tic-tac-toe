@@ -16,6 +16,8 @@
     "@socket.io/sticky": "^1.0.1",
     "cors": "^2.8.5",
     "express": "^4.17.2",
+    "express-rate-limit": "^6.2.0",
+    "rate-limiter-flexible": "^2.3.6",
     "redis": "^4.0.2",
     "socket.io": "^4.4.1",
     "uuid": "^8.3.2"

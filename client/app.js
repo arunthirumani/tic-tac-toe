@@ -33,6 +33,10 @@ var app = new Vue({
         app.$set(app.board[position.row], position.column, data.gameIdentifier);
         this.isMyTurn = data.isMyTurn;  
       });
+
+      socket.on('blocked', (message)=>{
+        console.log(message);
+      });
     },
     tileClicked(i, j) {
       if(this.isMyTurn) {
