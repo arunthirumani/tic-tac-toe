@@ -11,7 +11,8 @@ const numCPUs = require("os").cpus().length;
 
 
 const initGame = () => {
-  const client = redis.createClient();
+  const url='redis://redis:6379';
+  const client = redis.createClient({url});
   // const pubClient = redis.createClient();
   // const subClient = pubClient.duplicate();
   client.connect();
